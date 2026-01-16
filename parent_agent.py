@@ -9,7 +9,7 @@ import os
 
 load_dotenv()
 os.environ["GOOGLE_API_KEY"]
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview")
 template = ChatPromptTemplate.from_messages([
     ("system", """
 You are an intelligent router in text to sql system that understands the user question and 

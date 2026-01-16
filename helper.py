@@ -5,16 +5,13 @@ from langchain_core.runnables import RunnablePassthrough, RunnableMap, RunnableL
 import pickle
 import re
 from dotenv import load_dotenv
-load_dotenv()
-
 from langchain_google_genai import ChatGoogleGenerativeAI
+import os
+
 load_dotenv()
 
-import os
 os.environ["GOOGLE_API_KEY"]
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
-
-################################################ Sub question #############################
+llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview")
 
 template_subquestion = ChatPromptTemplate.from_messages([
     ("system", """
@@ -82,7 +79,13 @@ HOW TO THINK STEP BY STEP:
 - “Product table” answers two subquestions → Group both.
 - Do a final check if i missed anything 
 
-Output:
+Output guidelines:
+- No markdown
+- No code fences
+- No extra keys
+- No explanations
+
+Output: 
 [
   ["List of customers", "customer"],
   ["Total products bought per customer", "Product categories purchased", "product"]
@@ -275,6 +278,15 @@ HOW TO THINK STEP BY STEP:
   - **Includes all provided columns in logic or SELECT**
   - **If the query involves filtering grouped results or counting grouped records, use subqueries where appropriate to avoid logical conflicts between GROUP BY, HAVING, and aggregate functions in the SELECT clause
 
+
+Output guidelines:
+- No markdown
+- No code fences
+- No extra keys
+- No explanations
+
+
+
 User question:
 {query}
 
@@ -327,6 +339,13 @@ You must enforce the following rules with **strict accuracy**:
 - Ensure logical soundness and alignment with the user’s intent.
 - If the provided query is fully correct, return it **unchanged**.
 - If it has issues, return a revised and correct version.
+
+
+Output guidelines:
+- No markdown
+- No code fences
+- No extra keys
+- No explanations
 
 ---
 

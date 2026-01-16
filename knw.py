@@ -10,7 +10,7 @@ import pickle
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from info import execute_query
+from info import execute_query,run_sql_query
 load_dotenv()
 
 import os
@@ -127,6 +127,11 @@ Sample rows from the table:
 
 Table names:
 {tables}
+
+column names:it is a dictionary which contains column names of particular table 
+like 'Users': ['UserID', 'Name', 'Email', 'PremiumStatus'] so UserID, Name, Email, PremiumStatus are 
+columns of User table so use them
+{columns}
      ''')
 ])
 
@@ -135,7 +140,8 @@ chain = (
     RunnableMap({
         "description": lambda x: x["description"],
         "data_sample": lambda x: x["data_sample"],
-        "tables":lambda x:x['tables']
+        "tables":lambda x:x['tables'],
+        "columns":lambda x:x['columns']
     })
     | template
     | llm
@@ -156,19 +162,24 @@ kb_final = {}
 
 raw=execute_query("SELECT name FROM sqlite_master WHERE type='table'")
 
+def get_column_names(table_name: str) -> list[str]:
+    query = f"PRAGMA table_info({table_name});"
+    rows = run_sql_query(query)
+    return [row["name"] for row in rows]
+
 table_names = []
+table_columns={}
 for row in raw:
     name = row[0]
     if isinstance(name, str) and name.isidentifier():
+        columns=get_column_names(name)
+        table_columns[name]=columns
         table_names.append(name)
-
-
 
 for k,v in tqdm.tqdm(table_description.items()):
     d = read_sql(k)
     d_dict = str(d)
-
-    response = chain.invoke({"description": v, "data_sample": d_dict,"tables":table_names}).replace('```', '')
+    response = chain.invoke({"description": v, "data_sample": d_dict,"tables":table_names,"columns":table_columns}).replace('```', '')
     print(response)
     print('====================================================')
 
