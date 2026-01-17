@@ -29,6 +29,11 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
+@app.head("/")
+def health_check():
+    return {"status": "ok"}
+
+
 @app.get("/")
 def home():
     return {"message": "Server is live"}
@@ -36,5 +41,5 @@ def home():
 app.include_router(sql_router,prefix='/api')
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
