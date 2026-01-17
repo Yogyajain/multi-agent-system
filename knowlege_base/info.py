@@ -114,6 +114,4 @@ def run_sql_query(sql_query: str) -> list:
     except Exception as e:
         raise Exception(f"Query execution failed: {str(e)}")
 
-res=run_sql_query("SELECT name FROM sqlite_master WHERE type='table'")
-print(res)
 

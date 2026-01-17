@@ -13,6 +13,54 @@ load_dotenv()
 os.environ["GOOGLE_API_KEY"]
 llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview")
 
+
+template = ChatPromptTemplate.from_messages([
+    ("system", """
+You are an intelligent router in text to sql system that understands the user question and 
+determines which agents might have answer to the question based on agent description. Multiple agents might answer a given user question. OUTPUT SHOULD BE IN FORM OF LIST OF strings.
+Dont give any explanation or any other verbose in the output.
+"""),
+
+    ("human", '''
+Below are descriptions of different agents.
+ShopCore agent : It contains all the details about users like user identifiers and user information, products like product identifier, product category, description, dimensions and product details, and orders like order identifier, products in an order, number of items, price of order, order time, and order status
+ShipStream agent : It contains details about shipments like shipment identifier, tracking number, estimated arrival time, shipment status, warehouses like warehouse identifier, warehouse manager, warehouse location, and tracking events like which shipment was kept in which warehouse at what time and its status
+PayGuard agent : It contains details about wallets like wallet identifier, user wallet balance, transactions like transaction identifier, transaction amount, transaction time, transaction status, and payment methods like payment method identifier, payment method type, and payment options available to users
+CareDesk agent : It contains details about tickets like ticket identifier, ticket status, ticket creation time, ticket reference to orders or transactions, ticket messages like message content, message sender, message time, and satisfaction surveys like survey identifier, user rating, user comments, and feedback
+
+
+STEP BY STEP TABLE SELECTION PROCESS:
+- Split the question into different subquestions.
+- For each subquestion, very carefully go through each and every AGENT description, think which agent might have answer to this subquestion.
+- At the end collect all the agents that you thought can answer the whole question in form of list of strings
+- For a give question, if ShopCore and ShipStream agents can answer question, give output like below without any verbose.
+['ShopCore', 'ShipStream']
+- If only ShopCore can answer a question , give output like below with one agent in list
+['ShopCore']
+- For a give question, if ShopCore and PayGuard and CareDesk agents can answer question, give output like below without any verbose.
+['ShopCore', 'PayGuard', 'CareDesk']
+     
+User question:
+{question}
+
+     ''')
+])
+
+# Fix the RunnableMap implementation
+chain = (
+    RunnableMap({
+        "question": lambda x: x["question"]
+    })
+    | template 
+    | llm 
+    | StrOutputParser()
+)
+
+def agent_2(q):
+    response = chain.invoke({"question": q}).replace('```', '')
+    return response
+
+
 template_subquestion = ChatPromptTemplate.from_messages([
     ("system", """
 You are an intelligent subquestion generator that extracts subquestions based on human instruction and the CONTEXT provided. You are part of a Text-to-SQL agent.
@@ -241,51 +289,71 @@ chain_filter_extractor = (
 )
 
 
-
 template_sql_query = ChatPromptTemplate.from_messages([
-    ("system", """
-You are an intelligent MySQL query generator. Your task is to generate syntactically correct and optimized MySQL queries based on the user's question, relevant table/column details, and optional filter values.
+("system", """
+You are a highly strict MySQL query generator.
 
-You must respect **all the column selections** made by the previous agent. Every selected column is considered essential for logic, traceability, audit, or correctness and **must be used in the query based on its description.**
+Your job is to generate ONLY syntactically correct, executable MySQL queries using the provided schema.
+
+CRITICAL RULES:
+1. You MUST use every column listed under "Relevant tables and columns".
+2. You MUST NOT invent new columns or tables.
+3. Every column must appear either:
+   - In SELECT
+   - In JOIN condition
+   - In WHERE
+   - In GROUP BY
+   - In ORDER BY
+4. If aggregation is used, ALL non-aggregated columns must appear in GROUP BY.
+5. NEVER skip a provided column even if it looks irrelevant.
+6. Use table aliases, but NEVER use reserved keywords as aliases (e.g., or, and, as, select, where).
+7. Only generate valid MySQL syntax (no PostgreSQL/SQL Server features).
+8. Use CTE (WITH) only if absolutely needed for grouped filtering.
+9. Apply filters ONLY if they are listed in Applicable filters.
+10. Output ONLY the final SQL query. No explanations.
+
+Your output must be 100% executable in MySQL.
 """),
 
-    ("human", '''
-Instructions:
-- You will receive:
-  - A user question
-  - A list of relevant tables and columns (including column descriptions and sample values) as selected by previous text-to-SQL agent.
-  - Optional filter values for specific columns
-     
-HOW TO THINK STEP BY STEP:
-- Carefully read through all columns listed under "Relevant tables and columns". These columns have already been selected after deep reasoning by a specialized agent, so you must treat all of them as **mandatory**.
-- Use **all the listed columns** in your query, even if some may not affect the result directly. This is required for traceability and correctness.
-- Read the column descriptions carefully. Some columns may influence interpretation, even if they aren’t directly used in filtering or aggregation (e.g., they indicate multiple parts of a transaction, how values are split, or sequencing). Include such columns in the query logic or SELECT clause.
-- Do NOT drop or skip any columns under any circumstances.
-- Avoid using reserved SQL keywords like or, and, or as as aliases, as they may cause query errors.
-- Use CTE if query is big.
+("human", """
+You are given:
 
-- Check if there are any filters mentioned in "Applicable filters" below.
-  - If yes, verify that they match column types and values.
-  - Apply them using appropriate SQL WHERE clauses.
-  - If no filters, proceed to generate the base query.
+• A user question
+• A list of mandatory tables and columns selected by a prior schema reasoning agent
+• Optional filters that MUST be applied if present
 
-- Use meaningful table aliases to improve readability in joins. Be very careful while selecting alias. Dont select alias like or, and etc.
-- The final query must be:
-  - **Avoid using reserved SQL keywords like 'or', 'and', or 'as' as aliases in SQL query, as they may cause query errors**
-  - **Syntactically valid**
-  - **Optimized for MySQL**
-  - **Ready to execute**
-  - **Includes all provided columns in logic or SELECT**
-  - **If the query involves filtering grouped results or counting grouped records, use subqueries where appropriate to avoid logical conflicts between GROUP BY, HAVING, and aggregate functions in the SELECT clause
+STRICT INSTRUCTIONS:
 
+STEP 1 — COLUMN USAGE
+- Every column listed is mandatory.
+- Ensure each column appears in SELECT or contributes to JOIN/logic.
+- If a column represents metadata, include it in SELECT.
 
-Output guidelines:
-- No markdown
-- No code fences
-- No extra keys
-- No explanations
+STEP 2 — TABLE RELATIONSHIPS
+- Infer JOIN keys only from provided columns.
+- Never hallucinate keys.
+- Use INNER JOIN unless question clearly requires otherwise.
 
+STEP 3 — FILTER APPLICATION
+- Apply filters exactly as given.
+- Respect column types.
+- For NULL and "none" values, handle explicitly using:
+    column IS NOT NULL
+    column <> 'none'
 
+STEP 4 — AGGREGATION SAFETY
+- If GROUP BY exists:
+    include all non-aggregated columns.
+- If HAVING is needed, wrap aggregation in subquery or CTE.
+
+STEP 5 — VALIDATION BEFORE OUTPUT
+Ensure:
+✔ All columns used
+✔ No invented schema
+✔ Valid MySQL syntax
+✔ Proper GROUP BY usage
+✔ Safe aliases
+✔ Filters correctly applied
 
 User question:
 {query}
@@ -295,8 +363,9 @@ Relevant tables and columns:
 
 Applicable filters:
 {filters}
-''')
+""")
 ])
+
 
 
 chain_query_extractor = (
@@ -311,58 +380,58 @@ chain_query_extractor = (
 )
 
 template_validation = ChatPromptTemplate.from_messages([
-    ("system", """
-You are a highly capable and precise MySQL query validator.
+("system", """
+You are a strict MySQL query validator and repair agent.
 
-Your role is to:
-1. Understand the user's question.
-2. Interpret the selected input columns and their descriptions.
-3. Remove uncessary columns if any in the output. I need only relavant columns in output. Remove all unecessary columns from select.
-4. Analyze the SQL query generated by a prior agent.
-5. Validate the query strictly according to syntax, logic, and compliance rules.
-6. Remove/REPLACE any reserved SQL keywords like 'or', 'and', or 'as' as aliases, as they may cause query errors in the given SQL
-7. If the query involves filtering grouped results or counting grouped records, use subqueries where appropriate to avoid logical conflicts between GROUP BY, HAVING, and aggregate functions in the SELECT clause
+Your job is to verify that the provided SQL query is:
+• Syntactically valid in MySQL
+• Logically aligned with the user's question
+• Fully compliant with the mandatory schema
+• Free from invalid aliases or SQL errors
 
-Your output should either confirm the existing SQL query (if valid) or provide a corrected version with a clear adherence to best practices.
-    """),
+You must ONLY correct errors. You must NOT redesign the query unnecessarily.
 
-    ("human", '''
+CRITICAL RULES:
+1. Every column listed in "Relevant Tables and Columns" is mandatory.
+   - They must appear in SELECT or be meaningfully used in JOIN / WHERE / GROUP BY.
+   - You are NOT allowed to remove them from the query.
+2. Never introduce new tables or columns.
+3. Ensure all JOINs are valid and based only on provided columns.
+4. Fix alias issues:
+   - Replace aliases that use reserved words (or, and, as, select, where, group, order, etc.).
+5. Enforce MySQL aggregation rules:
+   - Every non-aggregated SELECT column must appear in GROUP BY.
+6. If HAVING or grouped filtering is logically incorrect, rewrite using a subquery.
+7. Filters must exactly match "Applicable Filters".
+8. Output ONLY the final corrected SQL query.
+9. If the query is already fully valid, return it unchanged.
+"""),
 
-You must enforce the following rules with **strict accuracy**:
+("human", """
+Validate the SQL query using strict MySQL correctness.
 
-- **All selected columns are mandatory**. Every column provided is crucial for business logic, traceability, auditability, or correctness. **They must appear in the query in a relevant and meaningful way, based on their descriptions.**
-- If any selected column is missing, misused, or ignored, the query must be rewritten accordingly.
-- If the query involves filtering grouped results or counting grouped records, use subqueries where appropriate to avoid logical conflicts between GROUP BY, HAVING, and aggregate functions in the SELECT clause
-- Validate all SQL **aliases** especially in joins—for clarity and consistency.
--  Remove/REPLACE any reserved SQL keywords like 'or', 'and', or 'as' as aliases, as they may cause query errors in the given SQL
-- Ensure **complete syntactic correctness** of the SQL statement.
-- Ensure logical soundness and alignment with the user’s intent.
-- If the provided query is fully correct, return it **unchanged**.
-- If it has issues, return a revised and correct version.
+Checklist before returning:
+✔ All mandatory columns present
+✔ No hallucinated schema
+✔ Valid JOIN logic
+✔ Valid GROUP BY usage
+✔ No reserved keyword aliases
+✔ Filters correctly applied
+✔ Query executable in MySQL
 
-
-Output guidelines:
-- No markdown
-- No code fences
-- No extra keys
-- No explanations
-
----
-
-**User Question:**  
+User Question:
 {query}
 
-**Relevant Tables and Columns:**  
+Relevant Tables and Columns:
 {columns}
 
-**Applicable Filters:**  
+Applicable Filters:
 {filters}
 
-**SQL Query to Validate:**  
+SQL Query to Validate:
 {sql_query}
-''')
+""")
 ])
-
 
 chain_query_validator = (
     RunnableMap({
