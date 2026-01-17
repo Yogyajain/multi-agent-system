@@ -14,7 +14,23 @@ async def get_sql_query(query:str):
         # res=graph_main.invoke({"user_query":query})
         # print(res['sql_query'])
         print(query)
-        res="SELECT OrderID, Status, UserID, ProductID, OrderDate FROM Orders WHERE Status = 'Delivered"
+        res="""
+                SELECT
+                o.OrderID,
+                o.Status,
+                s.OrderID AS Shipments_OrderID,
+                s.ShipmentID,
+                te.EventID,
+                te.ShipmentID AS TrackingEvents_ShipmentID,
+                te.StatusUpdate
+                FROM Orders AS o
+                INNER JOIN Shipments AS s
+                ON o.OrderID = s.OrderID
+                INNER JOIN TrackingEvents AS te
+                ON s.ShipmentID = te.ShipmentID
+                WHERE
+                o.Status = 'Delivered';"""
+
         return {"success":True,"data":res}
         # return {"success":True,"data":res['sql_query']}
     except Exception as e:

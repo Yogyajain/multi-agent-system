@@ -3,7 +3,7 @@ from sqlalchemy import create_engine,  text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.types import Integer, Float, String
 from rapidfuzz import process, fuzz
-from info import run_sql_query
+from knowledge_base.info import run_sql_query
 
 def get_values(table,column):
     query=f"SELECT DISTINCT {column} FROM {table}"

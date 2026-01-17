@@ -10,10 +10,14 @@ import re
 from langgraph.graph import StateGraph, START, END
 from typing import Dict, Any, TypedDict, Annotated
 from operator import add
-from helper import *
+from agents.helper import *
 from IPython.display import Image
 
-with open('kb4.pkl', 'rb') as f:
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+KB_PATH = os.path.join(BASE_DIR, "knowledge_base", "kb4.pkl")
+
+with open(KB_PATH, 'rb') as f:
     loaded_dict = pickle.load(f)
 
 

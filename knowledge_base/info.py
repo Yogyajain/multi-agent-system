@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 from typing import Generator, Any
 import pandas as pd
+from knowledge_base.db import conn
 # contains table description: [table description, columns description]
 table_description = {
     "users": "It contains details about users",
@@ -83,33 +84,14 @@ def execute_query(query_string: str) -> list:
 
 
 def run_sql_query(sql_query: str) -> list:
-    """
-    Execute a SQL query and return the results.
-    
-    This is a simple wrapper function that takes a SQL query string,
-    executes it against the database, and returns the results as a list.
-    
-    Args:
-        sql_query: SQL query string to execute
-        
-    Returns:
-        List of result rows. Each row is returned as a Row object that can be
-        accessed by index or column name.
-        
-    Raises:
-        Exception: If query execution fails
-        
-    Example:
-        >>> results = run_sql_query("SELECT * FROM users LIMIT 5")
-        >>> for row in results:
-        ...     print(row[0])  # Access by index
-        ...     print(row['username'])  # Access by column name
-    """
     try:
         with get_db() as db:
             query = text(sql_query)
-            result = db.execute(query)
-            rows = result.mappings().all()
+            # result = db.execute(query)
+            # rows = result.mappings().all()
+            result=conn.execute(sql_query)
+            col_names = [c[0] for c in result.description]
+            rows = [dict(zip(col_names, row)) for row in result.fetchall()]
             return rows
     except Exception as e:
         raise Exception(f"Query execution failed: {str(e)}")

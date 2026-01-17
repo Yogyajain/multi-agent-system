@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import os
+import sys
 import uvicorn
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 from api.generate_sql import router as sql_router
+
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -4,12 +4,12 @@ from operator import add
 import pickle
 from IPython.display import Image
 
-from helper import agent_2
-from sub_agent import graph_final
+from agents.helper import agent_2
+from agents.sub_agent import graph_final
 from langgraph.constants import Send
-
-from helper import chain_filter_extractor, chain_query_extractor, chain_query_validator
-from fuzzy import call_match
+import os
+from agents.helper import chain_filter_extractor, chain_query_extractor, chain_query_validator
+from agents.fuzzy import call_match
 from datetime import datetime
 import json
 import tqdm
@@ -24,9 +24,11 @@ db_store = {
 }
 
 
-with open('kb4.pkl', 'rb') as f:
-    loaded_dict = pickle.load(f)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+KB_PATH = os.path.join(BASE_DIR, "knowledge_base", "kb4.pkl")
 
+with open(KB_PATH, "rb") as f:
+    kb = pickle.load(f)
 
 def remove_duplicates(f):
     s = set()
