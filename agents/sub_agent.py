@@ -44,9 +44,11 @@ def column_node(state:overallstate):
         trans_col = eval(out_column)
         print("trans_col",trans_col)
         for col_selec in trans_col:
+            print("col_selec:",col_selec)
             new_col = ["name of table:" + table_name] + col_selec
             inter.append(new_col)
         final_col.extend(inter)
+        print("table:",t)
     print("column_node generated:",final_col)
     return {"column_extract": final_col}
 
