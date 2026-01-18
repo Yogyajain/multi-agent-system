@@ -31,12 +31,12 @@ def column_node(state:overallstate):
     print("column node is called")
     q=state['user_query']
     table_extract=state['table_extract']
-    print(table_extract)
     inter=[]
     final_col=[]
     for t in table_extract:
         table_name=t[1]
         sub_query=t[0]
+        print("extracting columns for:",t)
          # gives all the columns
         tab=loaded_dict[table_name][table_name] # gives description of table
         columns=tab["columns"]
@@ -48,7 +48,6 @@ def column_node(state:overallstate):
             new_col = ["name of table:" + table_name] + col_selec
             inter.append(new_col)
         final_col.extend(inter)
-        print("table:",t)
     print("column_node generated:",final_col)
     return {"column_extract": final_col}
 

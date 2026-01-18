@@ -72,29 +72,29 @@ def ShopCore(state:finalstate):
     q=state['user_query']
     print("Extracting relavant tables and columns from shopcore agent................")
     sub=graph_final.invoke({"user_query":q,"table_list":db_store['DB_ShopCore']})
-    print(sub)
+    print("response by shopcore agent",sub)
     return {"shopcore_out":sub}
 
 def ShipStream(state:finalstate):
     q=state['user_query']
-    print("Extracting relavant tables and columns from shopcore agent................")
+    print("Extracting relavant tables and columns from shipstream agent................")
     sub=graph_final.invoke({"user_query":q,"table_list":db_store['DB_ShipStream']})
-    print(sub)
+    print("response by shipstream agent",sub)
     return {"shipstream_out":sub}
 
 def PayGuard(state:finalstate):
     q=state['user_query']
-    print("Extracting relavant tables and columns from shopcore agent................")
+    print("Extracting relavant tables and columns from payguard agent................")
     sub=graph_final.invoke({"user_query":q,"table_list":db_store['DB_PayGuard']})
-    print(sub)
+    print("response by paygaurd agent",sub)
     return {"payguard_out":sub}
 
 
 def CareDesk(state:finalstate):
     q=state['user_query']
-    print("Extracting relavant tables and columns from shopcore agent................")
+    print("Extracting relavant tables and columns from caredesk agent................")
     sub=graph_final.invoke({"user_query":q,"table_list":db_store['DB_CareDesk']})
-    print(sub)
+    print("response by caredesk agent",sub)
     return {"caredesk_out":sub}
 
 def filter_condition(state:finalstate):
