@@ -1,10 +1,8 @@
 from agents.parent_agent import graph_main
 from fastapi import HTTPException
 from fastapi import APIRouter
-import logging
 router = APIRouter()
 
-logger = logging.getLogger(__name__)
 @router.get('/generate')
 async def get_sql_query(query:str):
     try:
@@ -34,5 +32,5 @@ async def get_sql_query(query:str):
         # return {"success":True,"data":res1}
         return {"success":True,"data":res['sql_query']}
     except Exception as e:
-        logger.error(f"Error in get_sql_query: {str(e)}")
+        print(f"Error in get_sql_query: {str(e)}")
         raise HTTPException(status_code=400,detail=f"Error:{str(e)}")
