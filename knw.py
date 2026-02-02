@@ -10,7 +10,7 @@ import pickle
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from info import execute_query,run_sql_query
+from knowledge_base.info import execute_query,run_sql_query
 load_dotenv()
 
 import os
@@ -34,7 +34,7 @@ table_description = {
     "PaymentMethods": "It contains details about payment methods using which user can make a payment as the user might have multiple payment options",
     "Tickets": "It contains details about ticket details for a particular order or payment",
     "TicketMessages": "it contains details about message sent either by user or by some agent like I have received my mobile or like your parcel will arrive in 20 mins",
-    "SatisfactionSurveys": "It contains detail about the survey that took place like what rating were given by user like 5 and what did he comment like best customer service "
+    "SatisfationSurveys": "It contains detail about the survey that took place like what rating were given by user like 5 and what did he comment like best customer service "
 }
 
 
@@ -153,14 +153,14 @@ def read_sql(table):
     query = "SELECT * FROM {};".format(table)
 
     # Execute and load into DataFrame
-    df_sample = execute_query(query)
+    df_sample = run_sql_query(query)
     print("res:",df_sample)
     return df_sample
 
 
 kb_final = {}
 
-raw=execute_query("SELECT name FROM sqlite_master WHERE type='table'")
+raw=run_sql_query("SELECT name FROM sqlite_master WHERE type='table'")
 
 def get_column_names(table_name: str) -> list[str]:
     query = f"PRAGMA table_info({table_name});"
@@ -170,7 +170,8 @@ def get_column_names(table_name: str) -> list[str]:
 table_names = []
 table_columns={}
 for row in raw:
-    name = row[0]
+    # print(row)
+    name = row['name']
     if isinstance(name, str) and name.isidentifier():
         columns=get_column_names(name)
         table_columns[name]=columns
@@ -181,10 +182,10 @@ for k,v in tqdm.tqdm(table_description.items()):
     d_dict = str(d)
     response = chain.invoke({"description": v, "data_sample": d_dict,"tables":table_names,"columns":table_columns}).replace('```', '')
     print(response)
+    kb_final[k] = eval(response)
     print('====================================================')
 
-    kb_final[k] = eval(response)
     time.sleep(5)
 
-with open('kb4.pkl', 'wb') as f:
+with open('kb5.pkl', 'wb') as f:
     pickle.dump(kb_final, f)

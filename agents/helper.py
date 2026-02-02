@@ -199,12 +199,36 @@ RULES:
 6. Output must be in the format specified below. Length of each sublist should be exactly 2.
 
 **Output Format:**
-Output should look like below list of lists format for sure.. This is mandatory. Make sure to say there are many other values in that column apart from sample values. Length of each sublist should be exactly 2.
-[["<column name 1>", "<Add column description as per column list below + What part of question this column answers something like this column tells about.... sample values:<> and add so on...>"], ["<column name 2>", "<Add column description as per column list below + What part of question this column answers like this column tells about.... .sample values:<> and so on in sample values>"]]
 
 Example: To know total value of an order, order might have multiple items. We might need to consider number of items * price of each item to know cost of order.
 Here, to calculate cost of order, we have considered number of items and price of each item. To solve 1 aspect of the question we required both columns.
 Carefully look at such scenarios based on column descriptions. Sometimes, there might not be such cases. Be careful and consider descriptions of different column.
+CRITICAL OUTPUT FORMATTING RULES:
+1. Return ONLY valid Python list syntax - no explanations, no markdown, no code blocks
+2. Use double quotes for strings: ["item1", "item2"] NOT ['item1', 'item2']
+3. Do NOT escape quotes with backslashes
+
+Return a JSON object with the following structure:
+{{
+   'selected_columns':[
+    {{
+      "table": "TableName",
+      "column": "column_name",
+      "description": "What this column contains",
+      "relevance_to_query": "Specifically how this column helps answer the user's question",
+      "sample_values": ["example1", "example2"],
+      "data_type": "INTEGER|STRING|DATE|FLOAT"
+    }}
+  ]
+}}
+
+CRITICAL RULES:
+1. Return ONLY valid JSON - no explanations, no markdown, no code blocks
+2. Use double quotes for all strings
+3. Do NOT escape quotes with backslashes
+4. Ensure all JSON syntax is valid (commas, brackets, braces)
+5. Include only columns that are DIRECTLY relevant to answering the query
+6. The "relevance_to_query" field must explain the specific connection to the user's question
 
 ---
 
@@ -243,7 +267,15 @@ Your job is to:
      
 3. Determine whether a **filter is needed** ONLY for string datatype columns:
     - If **yes**, return a list in the format:
-      ["yes", ["<table>", "<column>", "<filter values exactly as stated in the user question>"], ["<table2>", "<column2>", "<filter values exactly as stated in the user question>"], ...]
+      ["yes", 
+      "filters": [
+        {{
+      "table": "TableName",
+      "column": "column_name",
+      "values": "list of exact filter values from user question",
+      "original_text": "the original phrase from the user's query"
+    }}
+  ]]
     - If **no filter is needed**, return: ["no"]
 4. For the third item in each filter entry, suggest value(s) **exactly as stated in the user query**, even if they are different from the sample values.
    - If user says "New York" and the column has "SF" it means in actual columns values are in abbrevation, so output "NY". Suggest based on user question and sample values.
@@ -251,13 +283,28 @@ Your job is to:
 5. Only include columns in the output that help **narrow down** the dataset, such as city, state, payment method etc.
 6. For float or integer or DATE datatype columns just give ["no"] as output.  For date kind of columns give output as ["no"]
 7. Output should be STRICTLY in form of list.
-
+8. Do NOT wrap output in ```python``` code blocks
+9. Do NOT add any text before or after the list
+10. Example WRONG output: [\'Wallets\', \'Transactions\'] or ```python\n["Wallets"]\n```
 ⚠️ Be careful not to include aggregation or grouping columns like `customer_id`, `order_id`, or `product_id` unless they are being **explicitly** filtered in the question.
 
 Example outputs:
 [
-  "yes",["Tickets", "reference_type", "order"],["SatisfactionSurveys", "rating", "1, 2"]]
-["no"]
+  "has_filter":"yes,
+  'filters':[{{
+      "table": "Orders",
+      "column": "order_status",
+      "values": ["delivered,shipped"],
+      "original_text": "orders delivered or shipped"
+    }},
+    {{
+      "table": "Products",
+      "column": "price",
+      "values": [100, 500],
+      "original_text": "price between $100 and $500"
+    }}]]
+
+["has_filter":"no"]
     """),
 
     ("human", '''
@@ -418,6 +465,20 @@ Checklist before returning:
 ✔ No reserved keyword aliases
 ✔ Filters correctly applied
 ✔ Query executable in MySQL
+
+STRICT_OUTPUT_RULES = 
+CRITICAL OUTPUT FORMATTING RULES:
+1. Return ONLY valid Python list syntax - no explanations, no markdown, no code blocks
+2. Use double quotes for strings: ["item1", "item2"] NOT ['item1', 'item2']
+3. Do NOT escape quotes with backslashes
+7. Output should be STRICTLY in form of list.
+8. Do NOT wrap output in ```python``` code blocks
+9. Do NOT add any text before or after the list
+Output in given json format:
+{{
+  "sql_query":"string"
+}}
+
 
 User Question:
 {query}

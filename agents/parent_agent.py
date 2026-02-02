@@ -25,7 +25,7 @@ db_store = {
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KB_PATH = os.path.join(BASE_DIR, "knowledge_base", "kb4.pkl")
+KB_PATH = os.path.join(BASE_DIR, "knowledge_base", "kb5.pkl")
 
 with open(KB_PATH, "rb") as f:
     kb = pickle.load(f)
@@ -112,11 +112,14 @@ def filter_check(state:finalstate):
         if k in state:
             f[k]=state[k]
             col_f.extend(state[k]['column_extract'])
-    col_details = remove_duplicates(f)
+    col_details = col_f
+    print("*****************************************")
+    print(f"col_details:{col_details}")
     print("Checking the need for filter................")
     res=chain_filter_extractor.invoke({"query":q,"columns":str(col_details)})
-    print({"filter_extract":eval(res),"filtered_col":str(col_details)})
-    return {"filter_extract":eval(res),"filtered_col":str(col_details)}
+    print(f"res from chain filter:{res}")
+    print({"filter_extract":eval(res),"filtered_col":(col_details)})
+    return {"filter_extract":eval(res),"filtered_col":(col_details)}
 
 def fuzzy_match(state:finalstate):
     filter_extract=state['filter_extract']
@@ -148,8 +151,8 @@ def query_validator(state:finalstate):
         filter=''
     print("Validating the query................")
     out_validator=chain_query_validator.invoke({"query":q,"sql_query":sql_query,"columns":table_col,"filters":filter})
-    # print("respnonse from query validator",out_validator)
-    return {"query_validator":out_validator}
+    print("respnonse from query validator",out_validator)
+    return {"query_validator":out_validator['sql_query']}
 
 builder_final = StateGraph(finalstate)
 builder_final.add_node("parent", parent)

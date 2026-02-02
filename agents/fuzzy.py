@@ -16,11 +16,14 @@ def get_best_match(subval,unq_col_val):
     return best_match,score
 
 def call_match(val):
+    print("val",val)
     final=[]
-    for i in val[1:]:
-        table=i[0]
-        column=i[1]
-        str_lst=[i.strip() for i in i[2].split(',')]
+    f=val[1:]
+    for i in f['filters']:
+        print("i",i)
+        table=i['table']
+        column=i['column']
+        str_lst=[i.strip() for i in i['values'].split(',')]
 
         unq_col_val=get_values(table,column)
         unq_col_val=[str(i) for i in unq_col_val]

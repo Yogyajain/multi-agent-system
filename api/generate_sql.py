@@ -1,6 +1,8 @@
 from agents.parent_agent import graph_main
 from fastapi import HTTPException
 from fastapi import APIRouter
+
+from knowledge_base.info import run_sql_query
 router = APIRouter()
 
 @router.get('/generate')
@@ -30,7 +32,8 @@ async def get_sql_query(query:str):
                 o.Status = 'Delivered';"""
 
         # return {"success":True,"data":res1}
-        return {"success":True,"data":res['sql_query']}
+        d=run_sql_query(res['sql_query'])
+        return {"success":True,"data_sql":res['sql_query'],'data':d}
     except Exception as e:
         print(f"Error in get_sql_query: {str(e)}")
         raise HTTPException(status_code=400,detail=f"Error:{str(e)}")

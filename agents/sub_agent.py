@@ -15,7 +15,7 @@ from IPython.display import Image
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KB_PATH = os.path.join(BASE_DIR, "knowledge_base", "kb4.pkl")
+KB_PATH = os.path.join(BASE_DIR, "knowledge_base", "kb5.pkl")
 
 with open(KB_PATH, 'rb') as f:
     loaded_dict = pickle.load(f)
@@ -34,19 +34,19 @@ def column_node(state:overallstate):
     inter=[]
     final_col=[]
     for t in table_extract:
-        table_name=t[1]
-        sub_query=t[0]
+        table_name=t[-1]
+        sub_query=t[0:]
         print("extracting columns for:",t)
          # gives all the columns
         tab=loaded_dict[table_name][table_name] # gives description of table
         columns=tab["columns"]
         out_column=chain_column_extractor.invoke({"main_question":q,"columns":columns,"query":sub_query})
         trans_col = eval(out_column)
-        print("trans_col",trans_col)
-        for col_selec in trans_col:
+        print("trans_col",trans_col['selected_columns'])
+        for col_selec in trans_col['selected_columns']:
             print("col_selec:",col_selec)
-            new_col = ["name of table:" + table_name] + col_selec
-            inter.append(new_col)
+            # new_col = ["name of table:" + table_name] + col_selec
+            inter.append(col_selec)
         final_col.extend(inter)
     print("column_node generated:",final_col)
     return {"column_extract": final_col}
